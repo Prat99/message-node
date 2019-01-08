@@ -59,7 +59,12 @@ class Feed extends Component {
       })
       .then(resData => {
         this.setState({
-          posts: resData.posts,
+          posts: resData.posts.map( post => {
+            return {
+              ...post,
+              imagePath: post.imageUrl
+            }
+          }),
           totalPosts: resData.totalItems,
           postsLoading: false
         });
@@ -90,7 +95,6 @@ class Feed extends Component {
   startEditPostHandler = postId => {
     this.setState(prevState => {
       const loadedPost = { ...prevState.posts.find(p => p._id === postId) };
-
       return {
         isEditing: true,
         editPost: loadedPost
@@ -99,10 +103,13 @@ class Feed extends Component {
   };
 
   cancelEditHandler = () => {
-    this.setState({ isEditing: false, editPost: null });
+    this.setState({ isEditing: false, editPost: null });  
   };
 
   finishEditHandler = postData => {
+    console.log('edit handler', this.state);
+    let url = '';
+    let method = '';
     this.setState({
       editLoading: true
     });
@@ -111,13 +118,18 @@ class Feed extends Component {
     formData.append('title', postData.title);
     formData.append('content', postData.content);
     formData.append('image', postData.image);
-    let url = 'http://localhost:3002/post/create-post';
+    
     if (this.state.editPost) {
-      url = 'URL';
+      const postId = this.state.editPost._id;
+      url = 'http://localhost:3002/post/update-post/'+postId;
+      method = 'PUT'
+    } else {
+      url = 'http://localhost:3002/post/create-post';
+      method = 'POST'
     }
 
     fetch(url, {
-      method: 'POST',
+      method: method,
       /** application/json only sends text */ 
      // headers: { 'Content-Type': 'application/json' },
       // body: JSON.stringify({
@@ -174,7 +186,9 @@ class Feed extends Component {
 
   deletePostHandler = postId => {
     this.setState({ postsLoading: true });
-    fetch('URL')
+    fetch('http://localhost:3002/post/' + postId, {
+      method: 'DELETE'
+    })
       .then(res => {
         if (res.status !== 200 && res.status !== 201) {
           throw new Error('Deleting a post failed!');
@@ -224,6 +238,9 @@ class Feed extends Component {
             />
             <Button mode="flat" type="submit">
               Update
+            </Button>
+            <Button mode = 'flat' type = "submit">
+               <a href='http://localhost:4200/payment-confirm' target='_blank'>Payment</a>
             </Button>
           </form>
         </section>

@@ -85,7 +85,7 @@ class SinglePost extends Component {
           return {
             title: resData.post.title,
             author: resData.post.author,
-            image: 'http://localhost:3002/images' + resData.post.image,
+            image: 'http://localhost:3002/' + resData.post.imageUrl,
             date: new Date(resData.post.createdAt).toLocaleDateString('en-US'),
             content: resData.post.content
           }
