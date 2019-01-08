@@ -9,6 +9,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/db');
+const authController = require('../controllers/auth');
 const { check, validationResult, body } = require('express-validator/check');
 
 let appNotes = [];
@@ -35,6 +36,7 @@ router.get('/get-post', (req, res) => {
                     _id: element.id,
                     title: element.title,
                     content: element.content,
+                    imageUrl: element.image,
                     creator: {
                         name: element.author,
                     },
@@ -98,31 +100,40 @@ body('content').trim().isLength({ min: 5 })],
 
     });
 
-router.put('/:id', (req, res, next) => {
-    let id = Number(req.params.id);
+router.put('update-post/:id', (req, res, next) => {
+    const id = Number(req.params.id);
     const { title, body } = req.body;
-    const sql = `UPDATE notes SET title = ?, body = ? WHERE id = ?`
-    db.query(sql, [title, body, id], (err, result, fields) => {
-        if (err) {
-            res.send({ 'error': 'An error has occurred', err });
-        } else {
-            console.log('res', result);
-            const response = {
-                title: title,
-                body: body,
-                status_code: 200,
-                message: 'successfully updated',
-                v: 1.0
+    let imageUrl = req.body.image;
+    if(req.file) {
+        imageUrl = req.file.path
+    }
+    if(!imageUrl) {
+        const error = new Error('No file picked');
+        error.statusCode  = 422;
+        throw error;
+    }
+        const sql = `UPDATE notes SET title = ?, body = ?, image = ?, WHERE id = ?`
+        db.query(sql, [title, body, imageUrl,  id], (err, result, fields) => {
+            if (err) {
+                res.send({ 'error': 'An error has occurred', err });
+            } else {
+                console.log('res', result);
+                const response = {
+                    title: title,
+                    body: body,
+                    status_code: 200,
+                    message: 'successfully updated',
+                    v: 1.0
+                }
+                res.status(200).send(response);
             }
-            res.status(200).send(response);
-        }
-    });
+        });
 });
 
 router.delete('/:id', (req, res, next) => {
     let id = Number(req.params.id);
     let response;
-    const sql = `DELETE FROM notes WHERE id = ?`;
+    const sql = `DELETE FROM posts WHERE id = ?`;
     db.query(sql, [id], (err, result) => {
         if (err) {
             res.send({ 'error': 'An error has occurred', err });
@@ -141,7 +152,7 @@ router.delete('/:id', (req, res, next) => {
                     v: 1.0
                 }
             }
-            res.status(200).send(response);
+            res.status(200).json(response);
         }
     });
 });
@@ -160,19 +171,37 @@ router.get('/single-post/:id', (req, res, next) => {
             if (result.length > 0) {
                 console.log('single post result', result);
                 const response = {
-                    _id: result[0].id,
+                    id: result[0].id,
                     title: result[0].title,
                     content: result[0].content,
                     author: result[0].author || 'Prateek',
-                    date: result[0].date,
-                    image: result[0].image,
+                    date: result[0].date || Date.now(),
+                    imageUrl: result[0].image,
                 };
-                res.status(200).json({post: result[0]});
+                res.status(200).json({post: response});
             } else {
                 res.status(404).json({ message: 'resource not found' });
             }
         }
     });
 });
+
+/*** Auth Routes Start */
+
+router.post('/signup', [
+   body('email').isEmail().withMessage('Please enter a valid email').custom((value, { req }) => {
+       console.log('custom value', value);
+       return db.query('SELECT * FROM USERS WHERE email = ?', [value], (err, result) => {
+        console.log('user returned from db', result);    
+        if(err) {
+                console.log('body => db error' , err);
+            } else if(result) {
+                return Promise.reject('Email already Exists');
+            }
+       })
+   }),
+   body('name').trim().not().isEmpty(),
+   body('password').trim().isLength({min: 5})
+], authController.signup );
 
 module.exports = router;
