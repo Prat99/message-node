@@ -3,6 +3,7 @@ const app = express();
 const path = require('path');
 const bodyParser = require('body-parser');
 const routes = require('./routes/routes');
+const isAuth = require('./middleware/is-auth');
 var multer = require('multer')
 var upload = multer();
 
@@ -48,7 +49,7 @@ app.use((req, res, next) => {
 
 
 
-app.use('/post', routes);
+app.use('/post', isAuth, routes);
 // console.log('process', process.env.user);
 // console.log('process', process.env.userId);
 
@@ -56,7 +57,7 @@ app.use('/post', routes);
 /*** General error handling approach */
 // this will be executes whenever an error is thrown or passed to next()
 app.use((error, req, res, next) => {
-   console.error(error);
+   console.error('final error', error);
    const status = error.statusCode || 500;
    const message = error.message;
    res.status(status).json(

@@ -10,6 +10,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/db');
 const authController = require('../controllers/auth');
+const isAuth = require('../middleware/is-auth');
 const { check, validationResult, body } = require('express-validator/check');
 
 let appNotes = [];
@@ -203,5 +204,7 @@ router.post('/signup', [
    body('name').trim().not().isEmpty(),
    body('password').trim().isLength({min: 5})
 ], authController.signup );
+
+router.post('/login', authController.signin);
 
 module.exports = router;
